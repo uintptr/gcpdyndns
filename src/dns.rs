@@ -14,7 +14,6 @@ async fn auth() -> Result<String> {
     let provider = gcp_auth::provider().await?;
     let scopes = &["https://www.googleapis.com/auth/cloud-platform"];
     let token = provider.token(scopes).await?;
-
     Ok(token.as_str().to_string())
 }
 
@@ -53,8 +52,9 @@ pub async fn edit_dns_record(
         .send()
         .await?;
 
-    match res.status().is_success() {
-        true => Ok(()),
-        false => Err(Error::UpdateFailure(res.status())),
+    if res.status().is_success() {
+        Ok(())
+    } else {
+        Err(Error::UpdateFailure(res.status()))
     }
 }

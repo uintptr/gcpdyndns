@@ -131,15 +131,17 @@ async fn main() -> Result<()> {
 
     install_auth(&auth_file)?;
 
-    println!("GCPDynDns:");
-    printkv("Auth File", auth_file.display());
-    printkv("Project", &args.project);
-    printkv("Zone", &args.zone);
-    printkv("DNS Name", &args.name);
-    printkv("Data Directory", data_dir.display());
+    if args.verbose {
+        println!("GCPDynDns:");
+        printkv("Auth File", auth_file.display());
+        printkv("Project", &args.project);
+        printkv("Zone", &args.zone);
+        printkv("DNS Name", &args.name);
+        printkv("Data Directory", data_dir.display());
 
-    if let Some(poll_freq) = args.poll_frequency {
-        printkv("Poll Frequency", poll_freq)
+        if let Some(poll_freq) = args.poll_frequency {
+            printkv("Poll Frequency", poll_freq)
+        }
     }
 
     let mut persistent = Persistance::new(data_dir)?;

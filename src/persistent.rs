@@ -22,9 +22,10 @@ impl PersistentData {
     where
         D: AsRef<Path>,
     {
-        let data = match file_path.as_ref().exists() {
-            true => PersistentData::from_file(file_path)?,
-            false => Self { ip: None },
+        let data = if file_path.as_ref().exists() {
+            PersistentData::from_file(file_path)?
+        } else {
+            Self { ip: None }
         };
 
         Ok(data)
@@ -62,10 +63,10 @@ impl Persistance {
         S: AsRef<str>,
     {
         if let Some(ip) = &self.data.ip {
-            return ip != new_ip.as_ref();
+            ip != new_ip.as_ref()
+        } else {
+            true
         }
-
-        true
     }
 
     pub fn update<S>(&mut self, new_ip: S) -> Result<()>
