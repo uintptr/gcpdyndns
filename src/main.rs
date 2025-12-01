@@ -1,7 +1,6 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use clap::Parser;
@@ -11,9 +10,8 @@ use gcpdyndns::{
     external::get_external_ip,
     persistent::Persistance,
 };
-use log::{LevelFilter, error, warn};
+use log::{LevelFilter, warn};
 use rstaples::{display::printkv, logging::StaplesLogger};
-use tokio::time::sleep;
 
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 
@@ -39,10 +37,6 @@ struct UserArgs {
     /// force update
     #[arg(short, long)]
     force: bool,
-
-    /// Poll frequency in seconds
-    #[arg(long)]
-    poll_frequency: Option<u64>,
 
     /// verbose
     #[arg(short, long)]
@@ -83,7 +77,7 @@ fn install_auth(sa_file: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn update(persistent: &mut Persistance, args: &UserArgs) -> Result<()> {
+async fn update(mut persistent: Persistance, args: UserArgs) -> Result<()> {
     let ip_addr = get_external_ip().await?;
 
     let changed = persistent.ip_changed(&ip_addr);
@@ -95,19 +89,6 @@ async fn update(persistent: &mut Persistance, args: &UserArgs) -> Result<()> {
     }
 
     Ok(())
-}
-
-async fn update_loop(
-    mut persistent: Persistance,
-    args: UserArgs,
-    frequency: Duration,
-) -> Result<()> {
-    loop {
-        if let Err(e) = update(&mut persistent, &args).await {
-            error!("Unable to update ({e}");
-        }
-        sleep(frequency).await;
-    }
 }
 
 #[tokio::main]
@@ -137,19 +118,9 @@ async fn main() -> Result<()> {
         printkv("Zone", &args.zone);
         printkv("DNS Name", &args.name);
         printkv("Data Directory", data_dir.display());
-
-        if let Some(poll_freq) = args.poll_frequency {
-            printkv("Poll Frequency", poll_freq)
-        }
     }
 
-    let mut persistent = Persistance::new(data_dir, &args.name)?;
+    let persistent = Persistance::new(data_dir, &args.name)?;
 
-    match args.poll_frequency {
-        Some(v) => {
-            let freq_durarion = Duration::from_secs(v);
-            update_loop(persistent, args, freq_durarion).await
-        }
-        None => update(&mut persistent, &args).await,
-    }
+    update(persistent, args).await
 }
