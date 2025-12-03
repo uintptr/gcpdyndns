@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
 
     let log_level = match args.verbose {
         true => LevelFilter::Info,
-        false => LevelFilter::Error,
+        false => LevelFilter::Warn,
     };
 
     StaplesLogger::new()
