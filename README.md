@@ -1,5 +1,11 @@
 ## Update Dns Record
 
+### Install
+
+```
+cargo install --git https://github.com/uintptr/udyndns
+```
+
 ### GCP
 
 costs a few cents a month
