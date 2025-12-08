@@ -48,12 +48,12 @@ impl PersistentData {
 }
 
 impl Persistance {
-    pub fn new<D, S>(data_dir: D, domain: S) -> Result<Self>
+    pub fn new<D, S>(data_dir: D, hostname: S) -> Result<Self>
     where
         D: AsRef<Path>,
         S: AsRef<str>,
     {
-        let file_name = format!("{}.json", domain.as_ref());
+        let file_name = format!("{}.json", hostname.as_ref());
         let file_path = data_dir.as_ref().join(file_name);
         let data = PersistentData::new(&file_path)?;
 

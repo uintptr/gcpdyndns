@@ -1,39 +1,26 @@
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-};
+use std::{env, fs, path::PathBuf};
 
-use clap::Parser;
-use gcpdyndns::{
-    dns::edit_dns_record,
+use clap::{Parser, Subcommand};
+use log::{LevelFilter, warn};
+use rstaples::logging::StaplesLogger;
+use udyndns::{
     error::{Error, Result},
     external::get_external_ip,
     persistent::Persistance,
+    providers::{digital_ocean::DoArgs, google_cloud::GcpArgs},
 };
-use log::{LevelFilter, warn};
-use rstaples::{display::printkv, logging::StaplesLogger};
 
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 
-#[derive(Parser, Debug)]
+#[derive(Subcommand)]
+enum Providers {
+    Gcp(GcpArgs),
+    DigitalOcean(DoArgs),
+}
+
+#[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct UserArgs {
-    /// auth JSON file
-    #[arg(short, long, default_value_t = default_key())]
-    auth: String,
-
-    /// GCP Project
-    #[arg(short, long)]
-    project: String,
-
-    /// GCP DNS Zone
-    #[arg(short, long)]
-    zone: String,
-
-    /// DNS name
-    #[arg(short, long)]
-    name: String,
-
     /// force update
     #[arg(short, long)]
     force: bool,
@@ -41,20 +28,9 @@ struct UserArgs {
     /// verbose
     #[arg(short, long)]
     verbose: bool,
-}
 
-fn default_key() -> String {
-    if let Ok(self_exe) = env::current_exe() {
-        //
-        // is there a config.toml SxS to the executable
-        //
-        if let Some(self_dir) = self_exe.parent() {
-            let config_file = self_dir.join("key.json");
-            return config_file.to_string_lossy().to_string();
-        }
-    }
-
-    "".into()
+    #[command(subcommand)]
+    providers: Providers,
 }
 
 fn get_data_dir() -> Result<PathBuf> {
@@ -67,28 +43,6 @@ fn get_data_dir() -> Result<PathBuf> {
     }
 
     Ok(data_dir)
-}
-
-fn install_auth(sa_file: &Path) -> Result<()> {
-    let sa_file_str = sa_file.to_string_lossy().to_string();
-
-    unsafe { env::set_var("GOOGLE_APPLICATION_CREDENTIALS", sa_file_str) }
-
-    Ok(())
-}
-
-async fn update(mut persistent: Persistance, args: UserArgs) -> Result<()> {
-    let ip_addr = get_external_ip().await?;
-
-    let changed = persistent.ip_changed(&ip_addr);
-
-    if changed || args.force {
-        warn!("new ip {ip_addr}");
-        edit_dns_record(&args.project, &args.zone, &args.name, &ip_addr).await?;
-        persistent.update(ip_addr)?;
-    }
-
-    Ok(())
 }
 
 #[tokio::main]
@@ -105,22 +59,29 @@ async fn main() -> Result<()> {
         .with_log_level(log_level)
         .start();
 
-    let auth_file = PathBuf::from(&args.auth).canonicalize()?;
-
     let data_dir = get_data_dir()?;
 
-    install_auth(&auth_file)?;
+    let host_name = match &args.providers {
+        Providers::Gcp(gcp) => gcp.hostname.to_string(),
+        Providers::DigitalOcean(ocean) => ocean.hostname.to_string(),
+    };
 
-    if args.verbose {
-        println!("GCPDynDns:");
-        printkv("Auth File", auth_file.display());
-        printkv("Project", &args.project);
-        printkv("Zone", &args.zone);
-        printkv("DNS Name", &args.name);
-        printkv("Data Directory", data_dir.display());
+    let mut persist = Persistance::new(data_dir, &host_name)?;
+
+    let ip_addr = get_external_ip().await?;
+
+    let changed = persist.ip_changed(&ip_addr);
+
+    if changed || args.force {
+        warn!("new ip {ip_addr}");
+
+        match args.providers {
+            Providers::Gcp(gcp) => gcp.update(&ip_addr).await?,
+            Providers::DigitalOcean(ocean) => ocean.update(&ip_addr).await?,
+        }
+
+        persist.update(ip_addr)
+    } else {
+        Ok(())
     }
-
-    let persistent = Persistance::new(data_dir, &args.name)?;
-
-    update(persistent, args).await
 }

@@ -9,6 +9,8 @@ pub enum Error {
     UploadFailure,
     DataDirNotFound,
     UpdateFailure(StatusCode),
+    DomainParsingFailure,
+    DomainRecordNotFound,
     //
     // 2d party
     //
