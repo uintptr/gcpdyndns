@@ -58,15 +58,9 @@ impl DomainInfo {
             }
         };
 
-        let name = domain
-            .root()
-            .map(|d| d.to_string())
-            .ok_or(Error::DomainParsingFailure)?;
+        let name = domain.root().map(|d| d.to_string()).ok_or(Error::DomainParsingFailure)?;
 
-        let sub = domain
-            .prefix()
-            .map(|s| s.to_string())
-            .ok_or(Error::DomainParsingFailure)?;
+        let sub = domain.prefix().map(|s| s.to_string()).ok_or(Error::DomainParsingFailure)?;
 
         Ok(Self { name, sub })
     }
@@ -74,10 +68,7 @@ impl DomainInfo {
 
 impl DoArgs {
     async fn find_record_id(&self, client: &Client, domain: &str, token: &str) -> Result<u64> {
-        let url = format!(
-            "{DO_API_URL}/v2/domains/{}/records?name={}",
-            domain, self.hostname
-        );
+        let url = format!("{DO_API_URL}/v2/domains/{}/records?name={}", domain, self.hostname);
 
         let recs: DigitalOceanRecords = client
             .get(url)
@@ -88,10 +79,7 @@ impl DoArgs {
             .json::<DigitalOceanRecords>()
             .await?;
 
-        let first = recs
-            .domain_records
-            .first()
-            .ok_or(Error::DomainRecordNotFound)?;
+        let first = recs.domain_records.first().ok_or(Error::DomainRecordNotFound)?;
 
         Ok(first.id)
     }
@@ -106,10 +94,7 @@ impl DoArgs {
 
         let record_id = self.find_record_id(&client, &domain.name, token).await?;
 
-        let url = format!(
-            "{DO_API_URL}/v2/domains/{}/records/{}",
-            domain.name, record_id
-        );
+        let url = format!("{DO_API_URL}/v2/domains/{}/records/{}", domain.name, record_id);
 
         let rec_type = if ip.is_ipv4() { "A" } else { "AAAA" };
 

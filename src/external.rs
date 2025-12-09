@@ -30,10 +30,7 @@ pub struct ExternalIp {
 
 /// Makes a single request to the IPify API to get the external IP address
 async fn fetch_ip_from_api() -> Result<String> {
-    let response = reqwest::get(IPIFY_URL)
-        .await?
-        .json::<IpifyResponse>()
-        .await?;
+    let response = reqwest::get(IPIFY_URL).await?.json::<IpifyResponse>().await?;
 
     Ok(response.ip)
 }

@@ -54,10 +54,7 @@ async fn main() -> Result<()> {
         false => LevelFilter::Warn,
     };
 
-    StaplesLogger::new()
-        .with_colors()
-        .with_log_level(log_level)
-        .start();
+    StaplesLogger::new().with_colors().with_log_level(log_level).start();
 
     let data_dir = get_data_dir()?;
 
