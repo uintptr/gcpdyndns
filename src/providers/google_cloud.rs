@@ -1,14 +1,12 @@
 use std::{env, path::PathBuf};
 
+use anyhow::Result;
 use clap::Args;
 
 use reqwest::Client;
 use serde::Serialize;
 
-use crate::{
-    error::{Error, Result},
-    external::ExternalIp,
-};
+use crate::{error::Error, external::ExternalIp};
 
 const DNS_API_URL: &str = "https://dns.googleapis.com/dns/v1beta2/projects";
 
@@ -87,7 +85,7 @@ impl GcpArgs {
         if res.status().is_success() {
             Ok(())
         } else {
-            Err(Error::UpdateFailure(res.status()))
+            Err(Error::UpdateFailure(res.status()).into())
         }
     }
 

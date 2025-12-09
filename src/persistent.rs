@@ -3,9 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::error::Result;
 
 #[derive(Serialize, Deserialize)]
 struct PersistentData {

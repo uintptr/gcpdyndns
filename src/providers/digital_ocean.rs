@@ -1,16 +1,14 @@
 use std::path::PathBuf;
 
 use addr::parse_domain_name;
+use anyhow::Result;
 use clap::Args;
 use log::error;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-use crate::{
-    error::{Error, Result},
-    external::ExternalIp,
-};
+use crate::{error::Error, external::ExternalIp};
 
 const DO_API_URL: &str = "https://api.digitalocean.com";
 
@@ -54,7 +52,7 @@ impl DomainInfo {
             Ok(v) => v,
             Err(e) => {
                 error!("Unable to parse {hostname} ({e})");
-                return Err(Error::DomainParsingFailure);
+                return Err(Error::DomainParsingFailure.into());
             }
         };
 
@@ -116,7 +114,7 @@ impl DoArgs {
         if res.status().is_success() {
             Ok(())
         } else {
-            Err(Error::UpdateFailure(res.status()))
+            Err(Error::UpdateFailure(res.status()).into())
         }
     }
 }

@@ -3,11 +3,10 @@ use std::{
     time::Duration,
 };
 
+use anyhow::Result;
 use log::error;
 use serde::Deserialize;
 use tokio::time::sleep;
-
-use crate::error::Result;
 
 /// URL for the IPify service to get external IP address
 const IPIFY_URL: &str = "https://api64.ipify.org?format=json";

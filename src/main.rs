@@ -1,10 +1,11 @@
 use std::{env, fs, path::PathBuf};
 
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use log::{LevelFilter, info, warn};
 use rstaples::logging::StaplesLogger;
 use udyndns::{
-    error::{Error, Result},
+    error::Error,
     external::ExternalIp,
     persistent::Persistance,
     providers::{digital_ocean::DoArgs, google_cloud::GcpArgs},

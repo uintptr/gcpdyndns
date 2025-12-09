@@ -1,9 +1,7 @@
-pub type Result<T> = core::result::Result<T, Error>;
-
-use derive_more::From;
 use reqwest::StatusCode;
+use thiserror::Error;
 
-#[derive(Debug, From)]
+#[derive(Debug, Error)]
 pub enum Error {
     FileNameError,
     UploadFailure,
@@ -14,19 +12,14 @@ pub enum Error {
     //
     // 2d party
     //
-    #[from]
-    Io(std::io::Error),
-    #[from]
-    Utf8(std::string::FromUtf8Error),
+    Io(#[from] std::io::Error),
+    Utf8(#[from] std::string::FromUtf8Error),
     //
     // 3rd party
     //
-    #[from]
-    HttpRequestError(reqwest::Error),
-    #[from]
-    Deserialize(serde_json::Error),
-    #[from]
-    AuthError(gcp_auth::Error),
+    HttpRequestError(#[from] reqwest::Error),
+    Deserialize(#[from] serde_json::Error),
+    AuthError(#[from] gcp_auth::Error),
 }
 
 impl core::fmt::Display for Error {
