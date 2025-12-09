@@ -5,7 +5,10 @@ use clap::Args;
 use reqwest::Client;
 use serde::Serialize;
 
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    external::ExternalIp,
+};
 
 const DNS_API_URL: &str = "https://dns.googleapis.com/dns/v1beta2/projects";
 
@@ -49,7 +52,7 @@ impl GcpArgs {
         Ok(())
     }
 
-    async fn edit_dns_record(&self, ip_addr: &str) -> Result<()> {
+    async fn edit_dns_record(&self, ip: &ExternalIp) -> Result<()> {
         let token = auth().await?;
 
         //
@@ -60,13 +63,15 @@ impl GcpArgs {
             false => format!("{}.", self.hostname),
         };
 
+        let rec_type = if ip.is_ipv4() { "A" } else { "AAAA" };
+
         let url = format!(
-            "{}/{}/managedZones/{}/rrsets/{name}/A",
-            DNS_API_URL, self.project, self.zone
+            "{}/{}/managedZones/{}/rrsets/{name}/{}",
+            DNS_API_URL, self.project, self.zone, rec_type
         );
 
         let req_data = DnsPatchRequest {
-            rrdatas: vec![ip_addr],
+            rrdatas: vec![&ip.address],
         };
 
         let client = Client::new();
@@ -86,12 +91,9 @@ impl GcpArgs {
         }
     }
 
-    pub async fn update<S>(&self, ip_addr: S) -> Result<()>
-    where
-        S: AsRef<str>,
-    {
+    pub async fn update(&self, ip: &ExternalIp) -> Result<()> {
         self.install_auth()?;
 
-        self.edit_dns_record(ip_addr.as_ref()).await
+        self.edit_dns_record(ip).await
     }
 }

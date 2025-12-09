@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    time::Duration,
+};
 
 use log::error;
 use serde::Deserialize;
@@ -7,7 +10,7 @@ use tokio::time::sleep;
 use crate::error::Result;
 
 /// URL for the IPify service to get external IP address
-const IPIFY_URL: &str = "https://api.ipify.org?format=json";
+const IPIFY_URL: &str = "https://api64.ipify.org?format=json";
 
 /// Maximum number of retry attempts for fetching external IP
 const MAX_RETRY_ATTEMPTS: u32 = 5;
@@ -21,8 +24,12 @@ struct IpifyResponse {
     ip: String,
 }
 
+pub struct ExternalIp {
+    pub address: String,
+}
+
 /// Makes a single request to the IPify API to get the external IP address
-async fn fetch_ip_from_service() -> Result<String> {
+async fn fetch_ip_from_api() -> Result<String> {
     let response = reqwest::get(IPIFY_URL)
         .await?
         .json::<IpifyResponse>()
@@ -40,11 +47,11 @@ async fn fetch_ip_from_service() -> Result<String> {
 ///
 /// Returns the external IP address as a string on success, or an error
 /// if all retry attempts fail.
-pub async fn get_external_ip() -> Result<String> {
+async fn get_external_ip() -> Result<String> {
     let mut last_error = None;
 
     for attempt in 1..=MAX_RETRY_ATTEMPTS {
-        match fetch_ip_from_service().await {
+        match fetch_ip_from_api().await {
             Ok(ip) => return Ok(ip),
             Err(err) => {
                 error!(
@@ -64,4 +71,20 @@ pub async fn get_external_ip() -> Result<String> {
 
     // Return the last error encountered
     Err(last_error.unwrap())
+}
+
+impl ExternalIp {
+    pub async fn new() -> Result<Self> {
+        let address = get_external_ip().await?;
+
+        Ok(Self { address })
+    }
+
+    pub fn is_ipv4(&self) -> bool {
+        self.address.parse::<Ipv4Addr>().is_ok()
+    }
+
+    pub fn is_ipv6(&self) -> bool {
+        self.address.parse::<Ipv6Addr>().is_ok()
+    }
 }

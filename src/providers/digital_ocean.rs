@@ -7,7 +7,10 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    external::ExternalIp,
+};
 
 const DO_API_URL: &str = "https://api.digitalocean.com";
 
@@ -70,19 +73,13 @@ impl DomainInfo {
 }
 
 impl DoArgs {
-    fn record_type(&self) -> &'static str {
-        if self.ipv6 { "AAAA" } else { "A" }
-    }
-
     async fn find_record_id(&self, client: &Client, domain: &str, token: &str) -> Result<u64> {
-        let rec_type = self.record_type();
-
         let url = format!(
-            "{DO_API_URL}/v2/domains/{}/records?name={}&type={}",
-            domain, self.hostname, rec_type
+            "{DO_API_URL}/v2/domains/{}/records?name={}",
+            domain, self.hostname
         );
 
-        let recs = client
+        let recs: DigitalOceanRecords = client
             .get(url)
             .bearer_auth(token)
             .header("Content-Type", "application/json")
@@ -99,10 +96,7 @@ impl DoArgs {
         Ok(first.id)
     }
 
-    pub async fn update<S>(&self, ip_addr: S) -> Result<()>
-    where
-        S: AsRef<str>,
-    {
+    pub async fn update(&self, ip: &ExternalIp) -> Result<()> {
         let token = fs::read_to_string(&self.api_key_file).await?;
         let token = token.trim();
 
@@ -117,11 +111,13 @@ impl DoArgs {
             domain.name, record_id
         );
 
+        let rec_type = if ip.is_ipv4() { "A" } else { "AAAA" };
+
         let new_rec = DigitalOceanRecord {
             id: record_id,
             name: domain.sub,
-            data: ip_addr.as_ref().to_string(),
-            record_type: self.record_type().to_string(),
+            data: ip.address.to_string(),
+            record_type: rec_type.to_string(),
         };
 
         let res = client

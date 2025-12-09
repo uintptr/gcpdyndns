@@ -1,11 +1,11 @@
 use std::{env, fs, path::PathBuf};
 
 use clap::{Parser, Subcommand};
-use log::{LevelFilter, warn};
+use log::{LevelFilter, info, warn};
 use rstaples::logging::StaplesLogger;
 use udyndns::{
     error::{Error, Result},
-    external::get_external_ip,
+    external::ExternalIp,
     persistent::Persistance,
     providers::{digital_ocean::DoArgs, google_cloud::GcpArgs},
 };
@@ -68,19 +68,21 @@ async fn main() -> Result<()> {
 
     let mut persist = Persistance::new(data_dir, &host_name)?;
 
-    let ip_addr = get_external_ip().await?;
+    let ip = ExternalIp::new().await?;
 
-    let changed = persist.ip_changed(&ip_addr);
+    info!("external ip address: {}", ip.address);
+
+    let changed = persist.ip_changed(&ip.address);
 
     if changed || args.force {
-        warn!("new ip {ip_addr}");
+        warn!("new ip {}", ip.address);
 
         match args.providers {
-            Providers::Gcp(gcp) => gcp.update(&ip_addr).await?,
-            Providers::DigitalOcean(ocean) => ocean.update(&ip_addr).await?,
+            Providers::Gcp(gcp) => gcp.update(&ip).await?,
+            Providers::DigitalOcean(ocean) => ocean.update(&ip).await?,
         }
 
-        persist.update(ip_addr)
+        persist.update(ip.address)
     } else {
         Ok(())
     }
