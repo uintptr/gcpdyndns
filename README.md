@@ -6,12 +6,17 @@
 cargo install --git https://github.com/uintptr/udyndns
 ```
 
-### GCP
+### Google Cloud Platform (GCP)
 
-costs a few cents a month
+Only costs a few cents a month
 
+Example:
 ```
-/path/to/dyndns -v gcp --auth-file /path/to/service_account.json --project __project_name__  --zone __zone_name__ --hostname __hostname__
+/path/to/dyndns gcp \
+                --auth-file /path/to/service_account.json \
+                --project acme \
+                --zone acme \
+                --hostname hello.acme.com
 ```
 
 ### Digital Ocean
@@ -19,7 +24,9 @@ costs a few cents a month
 Free
 
 ```
-/path/to/udyndns -v digital-ocean --api-key-file /path/to/digital_ocean.token --hostname __hostname__
+/path/to/udyndns  digital-ocean \
+                  --api-key-file /path/to/acme.token \
+                  --hostname hello.acme.com
 ```
 
 ## Automation
@@ -31,5 +38,5 @@ crontab -e
 ```
 
 ```
- */5 * * * * /path/to/udyndns  digital-ocean --api-key-file /path/to/digital_ocean.token --hostname __hostname__  >> /path/to/udyndns.logs    2>&1
+ */5 * * * * /path/to/udyndns digital-ocean  --api-key-file /path/to/acme.token --hostname hello.acme.com
 ```
