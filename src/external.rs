@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::Result;
-use log::error;
+use log::{error, info};
 use serde::Deserialize;
 use tokio::time::sleep;
 
@@ -50,17 +50,19 @@ async fn get_external_ip() -> Result<String> {
         match fetch_ip_from_api().await {
             Ok(ip) => return Ok(ip),
             Err(err) => {
-                error!(
+                info!(
                     "Failed to fetch external IP (attempt {}/{}): {}",
                     attempt, MAX_RETRY_ATTEMPTS, err
                 );
 
-                last_error = Some(err);
-
                 // Don't sleep after the last attempt
                 if attempt < MAX_RETRY_ATTEMPTS {
                     sleep(Duration::from_secs(RETRY_DELAY_SECONDS)).await;
+                } else {
+                    error!("Failed to fetch external {err}");
                 }
+
+                last_error = Some(err);
             }
         }
     }
